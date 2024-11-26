@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoWeb GPG</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #e65c00;
+            --secondary-color: #ff8533;
+            --background-color: #1a1a1a;
+            --container-color: #2a2a2a;
+            --text-color: #ffd9b3;
+        }
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: var(--container-color);
+            color: var(--primary-color);
+            text-align: center;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(230,92,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 2.5rem;
+            position: relative;
+            display: inline-block;
+        }
+        h1::before {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--container-color);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        h1:hover::before {
+            opacity: 0;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--container-color);
+            padding: 10px 0;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab {
+            cursor: pointer;
+            padding: 10px 20px;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        .tab:hover, .tab.active {
+            background-color: var(--background-color);
+        }
+        .section {
+            background-color: var(--container-color);
+            border-radius: 0 0 8px 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(230,92,0,0.1);
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        h2 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            font-weight: 400;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        input[type="text"], input[type="email"], input[type="password"], input[type="file"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        button {
+            background-color: var(--primary-color);
+            color: var(--background-color);
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        #result {
+            background-color: var(--container-color);
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin-top: 2rem;
+            border-radius: 4px;
+            display: none;
+            box-shadow: 0 2px 4px rgba(230,92,0,0.1);
+        }
+        .success {
+            color: #32cd32;
+        }
+        .error {
+            color: #ff6347;
+        }
+        #loginPage, #mainPage {
+            display: none;
+        }
+        #loginPage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #loginForm {
+            background-color: var(--container-color);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(230,92,0,0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: var(--container-color);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid var(--primary-color);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .modal-content button {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPage">
+        <div id="loginForm">
+            <h2>Enter Password</h2>
+            <input type="password" id="password" required>
+            <button onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <div id="mainPage">
+        <header>
+            <h1 data-text="*&^%$#@!">Project-R</h1>
+        </header>
+        
+        <div class="container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('keyGeneration')">Key Generation</div>
+                <div class="tab" onclick="showTab('encryption')">Encryption</div>
+                <div class="tab" onclick="showTab('decryption')">Decryption</div>
+            </div>
+
+            <div id="keyGeneration" class="section active">
+                <h2>Key Generation</h2>
+                <label for="name">Name:</label>
+                <input type="text" id="name" required>
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+                <button onclick="generateKey()">Generate Key</button>
+            </div>
+
+            <div id="encryption" class="section">
+                <h2>Encryption and Signing</h2>
+                <label for="fileToEncrypt">File to Encrypt:</label>
+                <input type="file" id="fileToEncrypt" required>
+                <label for="recipientEmail">Recipient's Email:</label>
+                <input type="email" id="recipientEmail" required>
+                <label for="senderEmail">Sender's Email:</label>
+                <input type="email" id="senderEmail" required>
+                <button onclick="encryptAndSign()">Encrypt and Sign</button>
+            </div>
+
+            <div id="decryption" class="section">
+                <h2>Decryption and Verification</h2>
+                <label for="fileToDecrypt">Encrypted File (.gpg):</label>
+                <input type="file" id="fileToDecrypt" required>
+                <label for="signatureFile">Signature File (.sig):</label>
+                <input type="file" id="signatureFile" required>
+                <label for="verificationEmail">Sender's Email for Verification:</label>
+                <input type="email" id="verificationEmail" required>
+                <button onclick="decryptAndVerify()">Decrypt and Verify</button>
+            </div>
+
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <div id="fileHandlerModal" class="modal">
+        <div class="modal-content">
+            <h2>File Decrypted Successfully</h2>
+            <p>Do you want to download the decrypted file?</p>
+            <button onclick="handleFileAction(true)">Yes</button>
+            <button onclick="handleFileAction(false)">No</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+            resultDiv.className = isError ? 'error' : 'success';
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function login() {
+            const password = document.getElementById('password').value;
+            if (password === 'root') {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainPage').style.display = 'block';
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+        }
+
+        function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab');
+            const sections = document.querySelectorAll('.section');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            sections.forEach(section => section.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        async function generateKey() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            
+            try {
+                const response = await axios.post(`${API_URL}/generate-key`, { name, email });
+                showResult(response.data.message);
+            } catch (error) {
+                showResult(error.response.data.error, true);
+            }
+        }
+
+        async function encryptAndSign() {
+            const fileToEncrypt = document.getElementById('fileToEncrypt').files[0];
+            const recipientEmail = document.getElementById('recipientEmail').value;
+            const senderEmail = document.getElementById('senderEmail').value;
+
+            const formData = new FormData();
+            formData.append('file', fileToEncrypt);
+            formData.append('recipientEmail', recipientEmail);
+            formData.append('senderEmail', senderEmail);
+
+            try {
+                const response = await axios.post(`${API_URL}/encrypt-and-sign`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                showResult(response.data.message);
+            } catch (error) {
+                showResult(error.response.data.error, true);
+            }
+        }
+
+        async function decryptAndVerify() {
+            const fileToDecrypt = document.getElementById('fileToDecrypt').files[0];
+            const signatureFile = document.getElementById('signatureFile').files[0];
+            const verificationEmail = document.getElementById('verificationEmail').value;
+
+            const formData = new FormData();
+            formData.append('encryptedFile', fileToDecrypt);
+            formData.append('signatureFile', signatureFile);
+            formData.append('verificationEmail', verificationEmail);
+
+            try {
+                const response = await axios.post(`${API_URL}/decrypt-and-verify`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                showResult(response.data.message);
+                if (response.data.fileId) {
+                    showFileHandlerModal(response.data.fileId);
+                }
+            } catch (error) {
+                showResult(error.response.data.error, true);
+            }
+        }
+
+        function showFileHandlerModal(fileId) {
+            const modal = document.getElementById('fileHandlerModal');
+            modal.style.display = 'block';
+            modal.dataset.fileId = fileId;
+        }
+
+        function handleFileAction(shouldDownload) {
+            const fileId = document.getElementById('fileHandlerModal').dataset.fileId;
+            if (shouldDownload) {
+                window.location.href = `${API_URL}/download-file/${fileId}`;
+            }
+            // Close the modal and redirect back to the portal
+            document.getElementById('fileHandlerModal').style.display = 'none';
+            // Reset the active tab to the first one (Key Generation)
+            showTab('keyGeneration');
+        }
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById('loginPage').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>
